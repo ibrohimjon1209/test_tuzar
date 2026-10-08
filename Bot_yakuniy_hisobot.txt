@@ -1,0 +1,44 @@
+Telegram bot va server deploy uchun yakuniy hisobot
+
+1. Qaysi fayllar o'zgartirildi
+- [config.py] — .env dan BOT_TOKEN, GEMINI_API_KEY, GEMINI_MODEL, GEMINI_MODEL_FALLBACK, DB_PATH, LOG_LEVEL, TZ ni o'qiydi. Token/API kalitlarning matnini logga yozmaydi.
+- [db.py] — SQLite uchun WAL, busy_timeout, /data papka yaratish, DB_PATH konfiguratsiyasi, xavfsiz ulanish qo'shildi.
+- [main.py] — polling boshlashdan oldin delete_webhook(drop_pending_updates=True) chaqiriladi; graceful shutdown support qo'shildi; logging stdout ga chiqqan holda ishlaydi.
+- [Dockerfile] — python:3.12-slim, non-root user, sqlite3/tesseract/poppler va healthcheck qo'shildi.
+- [docker-compose.yml] — bitta bot service, ./data:/data volume, restart policy, log rotation, TZ va memory limit ishlaydi.
+- [.env.example] — barcha kerakli o'zgaruvchilar bo'sh qiymatlar bilan yozildi.
+- [backup.sh] — SQLite `.backup` orqali /data/backups/ ga saqlaydi va oxirgi 7 nusxani ushlab turadi.
+- [DEPLOY.md] — Oracle Cloud Always Free serveriga qadam-baqadam deploy ko'rsatmasi.
+- [README.md] — Docker deploy qisqacha ko'rsatma qo'shildi.
+- [tests/test_config.py], [tests/test_db.py] — pytest testlari qo'shildi.
+
+2. Nima sinab ko'rildi
+- Python bog'liqliklari (`python -m pip install -r requirements.txt`) o'rnatildi.
+- `pytest -q` ishga tushirildi; natija: 2 passed in 0.52s.
+- Docker CLI mavjud emasligini tekshirdik: `docker --version` yoki `docker compose config` ishlamadi. Shuning uchun Docker build/compose testini shu muhitda bajarish mumkin emas edi.
+
+3. Nima sinalmadi
+- Real server deploy (Oracle Cloud Always Free VM) current environmentda bajarilmadi, chunki Docker CLI mavjud emas va server holati mavjud emas.
+- ARM64 / AMD64 build bo'yicha real container build va run sinovi ham shu muhitdan tashqarida qoladi.
+
+4. Foydalanuvchi serverda bajaradigan buyruqlar (qisqa)
+```bash
+cp .env.example .env
+nano .env
+chmod 600 .env
+
+docker compose up -d --build
+docker compose logs -f --tail=100 bot
+```
+
+Yoki texnik backup uchun:
+```bash
+chmod +x backup.sh
+./backup.sh
+```
+
+5. Xulosa
+- Kod server/Docker uchun tayyorlashtirildi.
+- Lokal pytest tekshiruvlari muvaffaqiyatli o'tdi.
+- Real Docker build / server deploy ni faqat haqiqiy Docker o'rnatilgan server yoki masofaviy VMda tekshirish kerak.
+- Barcha token/API kalitlar `.env` ichida qoladi, .env.example faqat bo'sh qiymatlarni o'z ichiga oladi.
